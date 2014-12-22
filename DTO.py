@@ -8,6 +8,8 @@ MonitorControl module.
 """
 import logging
 
+from . import cfg
+
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError
 from MonitorControl.FrontEnds import FrontEnd
@@ -20,13 +22,6 @@ from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287
 from Electronics.Instruments.Valon import Valon1, Valon2
 
-module_logger = logging.getLogger(__name__)
-
-cfg = {14: {'S':['R','L'], 'X':['R','L']},
-       15: {'S':['R'], 'X':['R']},
-       24: {'S':['R'], 'X':['R'], 'Ka':['R']},
-       25: {'X':['R','L'], 'Ka':['R']},
-       26: {'X':['R','L'], 'Ka':['R']}}
 
 def station_configuration(roach_loglevel=logging.WARNING):
   """
