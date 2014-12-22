@@ -5,6 +5,9 @@ Front end names are of the form band+dss, where band is S, X or Ka and dss is
 the station number. The available receivers and polarizations for each antenna
 are described in dict 'cfg', which follows the convention established in the
 MonitorControl module.
+
+The output channels must have unique names because each has its own
+independent data stream.
 """
 import logging
 
@@ -19,8 +22,18 @@ from MonitorControl.BackEnds.ROACH1.KurtSpec import KurtosisSpectrometer
 from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287
 from Electronics.Instruments.Valon import Valon1, Valon2
+from support.network import LAN_hosts_status
 
+logging.basicConfig(level=logging.DEBUG)
 module_logger = logging.getLogger(__name__)
+
+up, down, IP, MAC, ROACHlist = LAN_hosts_status()
+n_roaches = len(ROACHlist)
+if n_roaches < 2:
+  module_logger.warning("Only %d ROACHes available", n_roaches)
+if n_roaches < 1:
+  raise ObservatoryError("", "Cannot proceed without ROACHes")
+roaches = ROACHlist[:2]
 
 cfg = {14: {'S':['R','L'], 'X':['R','L']},
        15: {'S':['R'], 'X':['R']},
@@ -118,13 +131,14 @@ def station_configuration(roach_loglevel=logging.WARNING):
                                      ["IF2kurt", "IF2pwr"],
                                      ["IF3kurt", "IF3pwr"],
                                      ["IF4kurt", "IF4pwr"]],
-                     roaches = ['roach1', 'roach2'],
-                     clocks = [sample_clk[0],sample_clk[1]])
+                     roaches = roaches,
+                     clocks = [sample_clk[0],sample_clk[1]],
+                     roach_loglevel=roach_loglevel)
                                      
   return obs, tel, fe, rx, IFswitch, sample_clk, BE
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.DEBUG)
+
   from MonitorControl.Configurations.configGDSCC.DTO import station_configuration
   obs, tel, fe, rx, IFswitch, sample_clk, BE = station_configuration()
   print "obs =",obs
