@@ -11,6 +11,8 @@ independent data stream.
 """
 import logging
 
+from . import cfg
+
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError
 from MonitorControl.FrontEnds import FrontEnd
