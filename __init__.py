@@ -4,7 +4,8 @@ Configurations at the Goldstone Complex
 Nested dict 'cfg' is keyed the DSN stations, then the DSN receivers and then
 the polarizations which are available at the inputs of the VLBI DAT matrix
 switch, which will also be the DTO matrix switch. This dict can edited easily
-if more IFs become available, simply replacing the appropriate 0 with the input number. If there is no key, that IF does not exist.
+if more IFs become available, simply replacing the appropriate 0 with the input
+number. If there is no key, that IF does not exist.
 """
 import logging
 
