@@ -379,7 +379,6 @@ class HP_IFSwitch(Device):
       self.get_state()
 
 
-
 class IFMatrixSwitch(Device):
   """
   """
