@@ -604,7 +604,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   """
   site = Observatory("Venus")
   tel = Telescope(site, dss=13)
-  equipment['Telescope']
+  equipment['Telescope'] = tel
   equipment['FE_selector'] = ClassInstance(Switch, Ellipsoid, "ellipsoid",
                                inputs={'antenna': tel.outputs[tel.name]},
                                output_names=['pos1','pos2','pos3','pos4',
