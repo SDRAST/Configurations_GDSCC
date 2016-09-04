@@ -2,8 +2,13 @@
 
 # C extensions
 *.so
+
 # No backups
 *~
+
+# Pyro logs
+*log
+Pyro*
 
 # Packages
 *.egg
