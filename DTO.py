@@ -14,7 +14,7 @@ import logging
 from . import cfg
 
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
-from MonitorControl import ObservatoryError
+from MonitorControl import ObservatoryError, Switch
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
@@ -43,7 +43,7 @@ cfg = {14: {'S':['R','L'], 'X':['R','L']},
        25: {'X':['R','L'], 'Ka':['R']},
        26: {'X':['R','L'], 'Ka':['R']}}
 
-def station_configuration(roach_loglevel=logging.WARNING):
+def station_configuration(equipment, roach_loglevel=logging.WARNING):
   """
   Describe a DSN Complex
 
@@ -70,7 +70,9 @@ def station_configuration(roach_loglevel=logging.WARNING):
       # for each polarization processed by the receiver
       for polindex in range(len(cfg[dss][band])):
         outnames.append(fename+cfg[dss][band][polindex])
-      fe[fename] = ClassInstance(FrontEnd, DSN_fe, fename,
+      fe[fename] = ClassInstance(FrontEnd, 
+                                 DSN_fe, 
+                                 fename,
                                  inputs = {fename:
                                            tel[dss].outputs[tel[dss].name]},
                                  output_names = outnames)
@@ -79,14 +81,17 @@ def station_configuration(roach_loglevel=logging.WARNING):
       for outname in outnames:
         rx_inputs[outname] = fe[fename].outputs[outname]
         rx_outnames.append(outname+'U')
-      rx[fename] = ClassInstance(Receiver, DSN_rx, fename,
+      rx[fename] = ClassInstance(Receiver, 
+                                 DSN_rx, 
+                                 fename,
                                  inputs = rx_inputs,
                                  output_names = rx_outnames)
-
+  equipment['Telescope'] = tel
+  equipment['FrontEnd'] = fe
+  equipment['Receiver'] = rx
   #This part has to be done by hand to show the physical cabling
   IFswitch = ClassInstance(Device,
                            MS287,
-                           obs,
                            "Matrix Switch",
                            inputs={'In01': rx['S14'].outputs['S14RU'],
                                    'In02': rx['S14'].outputs['S14LU'],
@@ -113,7 +118,7 @@ def station_configuration(roach_loglevel=logging.WARNING):
                                    'In23': None,
                                    'In24': None},
                            output_names=['IF1', 'IF2', 'IF3', 'IF4'])
-
+  equipment['IF_switch'] = {"DTO": IFswitch}
   sample_clk = {}
   sample_clk[0] = ClassInstance(Synthesizer,Valon1,timeout=10)
   sample_clk[1] = ClassInstance(Synthesizer,Valon2,timeout=10)
@@ -121,7 +126,7 @@ def station_configuration(roach_loglevel=logging.WARNING):
                  sample_clk[0].get_p("frequency"))
   module_logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
-
+  equipment['sampling_clock'] = sample_clk
   BE = ClassInstance(Backend,
                      KurtosisSpectrometer,
                      "Kurtosis Spectrometer",
@@ -136,8 +141,8 @@ def station_configuration(roach_loglevel=logging.WARNING):
                      roaches = roaches,
                      clocks = [sample_clk[0],sample_clk[1]],
                      roach_loglevel=roach_loglevel)
-                                     
-  return obs, tel, fe, rx, IFswitch, sample_clk, BE
+  equipment['Backend'] = BE                         
+  return obs, equipment
 
 if __name__ == "__main__":
 
