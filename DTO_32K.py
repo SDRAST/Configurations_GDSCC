@@ -11,8 +11,6 @@ independent data stream.
 """
 import logging
 
-from . import cfg
-
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError, Switch
 from MonitorControl.FrontEnds import FrontEnd
@@ -20,13 +18,12 @@ from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
 from MonitorControl.BackEnds import Backend
-from MonitorControl.BackEnds.ROACH1.KurtSpec import KurtosisSpectrometer
+from MonitorControl.BackEnds.ROACH1.SAOspec import SAOspec
 from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287client
 from Electronics.Instruments.Valon import Valon1, Valon2
 from support.network import LAN_hosts_status
 
-logging.basicConfig(level=logging.DEBUG)
 module_logger = logging.getLogger(__name__)
 
 up, down, IP, MAC, ROACHlist = LAN_hosts_status()
@@ -126,32 +123,36 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                  sample_clk[0].get_p("frequency"))
   module_logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
-  equipment['sampling_clock'] = sample_clk
   BE = ClassInstance(Backend,
-                     KurtosisSpectrometer,
-                     "Kurtosis Spectrometer",
+                     SAOspec,
+                     "32K Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
                                "Ro1In2": IFswitch.outputs['IF2'],
                                "Ro2In1": IFswitch.outputs['IF3'],
                                "Ro2In2": IFswitch.outputs['IF4']},
-                     output_names = [["IF1kurt", "IF1pwr"],
-                                     ["IF2kurt", "IF2pwr"],
-                                     ["IF3kurt", "IF3pwr"],
-                                     ["IF4kurt", "IF4pwr"]],
-                     roaches = roaches,
-                     clocks = [sample_clk[0],sample_clk[1]],
-                     roach_loglevel=roach_loglevel)
+                     output_names = [["IF1pwr"],
+                                     ["IF2pwr"],
+                                     ["IF3pwr"],
+                                     ["IF4pwr"]])
   equipment['Backend'] = BE                         
   return obs, equipment
 
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.DEBUG)
+  mylogger = logging.getLogger()
+  mylogger.setLevel(logging.DEBUG)
+  
+  from MonitorControl.Configurations import station_configuration
 
-  from MonitorControl.Configurations.configGDSCC.DTO import station_configuration
-  obs, tel, fe, rx, IFswitch, sample_clk, BE = station_configuration()
-  print "obs =",obs
-  print "tel =",tel
-  print "fe =",fe
-  print "rx =",rx
-  print "IFswitch =",IFswitch
-  print "Sample clock =", sample_clk
-  print "Backend =", BE
+  obs, equipment = station_configuration('DTO-32K')
+  print "obs =", obs
+  tel = equipment['Telescope']
+  fe = equipment['FrontEnd']
+  rx = equipment['Receiver']
+  print "tel =", tel
+  print "fe =", fe
+  print "rx =", rx
+  IFswitch = equipment['IF_switch']
+  print "IFswitch =", IFswitch
+  BE = equipment['Backend']
+  print "BE =", BE
