@@ -137,10 +137,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                      output_names = [["IF1kurt", "IF1pwr"],
                                      ["IF2kurt", "IF2pwr"],
                                      ["IF3kurt", "IF3pwr"],
-                                     ["IF4kurt", "IF4pwr"]],
-                     roaches = roaches,
-                     clocks = [sample_clk[0],sample_clk[1]],
-                     roach_loglevel=roach_loglevel)
+                                     ["IF4kurt", "IF4pwr"]])
   equipment['Backend'] = BE                         
   return obs, equipment
 
