@@ -11,22 +11,20 @@ independent data stream.
 """
 import logging
 
-from . import cfg
-
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError, Switch
+from MonitorControl.Configurations.GDSCC import cfg
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
 from MonitorControl.BackEnds import Backend
-from MonitorControl.BackEnds.ROACH1.KurtSpec import KurtosisSpectrometer
+from MonitorControl.BackEnds.ROACH1.SAOspec import SAOspec
 from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287client
 from Electronics.Instruments.Valon import Valon1, Valon2
 from support.network import LAN_hosts_status
 
-logging.basicConfig(level=logging.DEBUG)
 module_logger = logging.getLogger(__name__)
 
 up, down, IP, MAC, ROACHlist = LAN_hosts_status()
@@ -37,12 +35,17 @@ if n_roaches < 1:
   raise ObservatoryError("", "Cannot proceed without ROACHes")
 roaches = ROACHlist[:2]
 
-# use cfg from GDSCC module instead
-#cfg = {14: {'S':['R','L'], 'X':['R','L']},
-#       15: {'S':['R'], 'X':['R']},
-#       24: {'S':['R'], 'X':['R'], 'Ka':['R']},
-#       25: {'X':['R','L'], 'Ka':['R']},
-#       26: {'X':['R','L'], 'Ka':['R']}}
+#cfg = {14: {'S': ['R','L'],
+#            'X': ['R','L']},
+#       15: {'S': ['R'],
+#            'X': ['R']},
+#       24: {'S': ['R'],
+#            'X': ['R'],
+#            'Ka':['R']},
+#       25: {'X': ['R','L'],
+#            'Ka':['R']},
+#       26: {'X': ['R','L'],
+#            'Ka':['R']}}
 
 def station_configuration(equipment, roach_loglevel=logging.WARNING):
   """
@@ -55,22 +58,26 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   The front end names are constructed from the dict `cfg'.  The initialization
   of 'DSN_fe' depends on this to know the band name.
   """
-  # Define the site !!!!!!!!!!!!!!!!!!!! replace with DSN_standard!!!!!!!!!
+  # Define the site
   obs = Observatory("GDSCC")
   tel = {}
   fe = {}
   rx = {}
   # For each station at the site
-  for dss in cfg.keys():
+  for dss in cfg.keys():                                 # 14,...,26
+    module_logger.debug("station_configuration: processing DSS-%d", dss)
     # define the telescope
     tel[dss] = Telescope(obs, dss=dss)
     # for each band available on the telescope
-    for band in cfg[dss].keys():
+    for band in cfg[dss].keys():                         # S, X, Ka
+      module_logger.debug("station_configuration: processing band %s", dss)
       fename = band+str(dss)
       outnames = []
       # for each polarization processed by the receiver
-      for polindex in range(len(cfg[dss][band])):
-        outnames.append(fename+cfg[dss][band][polindex])
+      for pol in cfg[dss][band].keys():                  # L, R
+        module_logger.debug("station_configuration: processing pol %s", pol)
+        outnames.append(fename+pol)   #   cfg[dss][band][pol])
+      module_logger.debug("station_configuration: FE output names: %s", outnames)
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
@@ -81,7 +88,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
       rx_outnames = []
       for outname in outnames:
         rx_inputs[outname] = fe[fename].outputs[outname]
-        rx_outnames.append(outname+'U')
+        rx_outnames.append(outname+'U')                 # all DSN IFs are USB
       rx[fename] = ClassInstance(Receiver, 
                                  DSN_rx, 
                                  fename,
@@ -94,21 +101,21 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   IFswitch = ClassInstance(Device,
                            MS287client,
                            "Matrix Switch",
-                           inputs={'In01': rx['S14'].outputs['S14RU'],
-                                   'In02': rx['S14'].outputs['S14LU'],
-                                   'In03': rx['X14'].outputs['X14RU'],
-                                   'In04': rx['X14'].outputs['X14LU'],
-                                   'In05': rx['S15'].outputs['S15RU'],
-                                   'In06': rx['X15'].outputs['X15RU'],
-                                   'In07': rx['S24'].outputs['S24RU'],
-                                   'In08': rx['X24'].outputs['X24RU'],
-                                   'In09': rx['Ka24'].outputs['Ka24RU'],
-                                   'In10': rx['X25'].outputs['X25RU'],
-                                   'In11': rx['X25'].outputs['X25LU'],
-                                   'In12': rx['Ka25'].outputs['Ka25RU'],
-                                   'In13': rx['X26'].outputs['X26RU'],
-                                   'In14': rx['X26'].outputs['X26LU'],
-                                   'In15': rx['Ka26'].outputs['Ka26RU'],
+                           inputs={'In01': rx['S24'].outputs['S24RU'],
+                                   'In02': rx['S26'].outputs['S26RU'],
+                                   'In03': rx['X15'].outputs['X15RU'],
+                                   'In04': rx['X25'].outputs['X25RU'],
+                                   'In05': rx['Ka25'].outputs['Ka25RU'],
+                                   'In06': rx['S15'].outputs['S15RU'],
+                                   'In07': rx['X26'].outputs['X26RU'],
+                                   'In08': rx['Ka26'].outputs['Ka26RU'],
+                                   'In09': rx['S14'].outputs['S14RU'],
+                                   'In10': rx['X14'].outputs['X14RU'],
+                                   'In11': None,
+                                   'In12': None,
+                                   'In13': None,
+                                   'In14': None,
+                                   'In15': None,
                                    'In16': None,
                                    'In17': None,
                                    'In18': None,
@@ -127,29 +134,36 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                  sample_clk[0].get_p("frequency"))
   module_logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
-  equipment['sampling_clock'] = sample_clk
   BE = ClassInstance(Backend,
-                     KurtosisSpectrometer,
-                     "Kurtosis Spectrometer",
+                     SAOspec,
+                     "32K Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
                                "Ro1In2": IFswitch.outputs['IF2'],
                                "Ro2In1": IFswitch.outputs['IF3'],
                                "Ro2In2": IFswitch.outputs['IF4']},
-                     output_names = [["IF1kurt", "IF1pwr"],
-                                     ["IF2kurt", "IF2pwr"],
-                                     ["IF3kurt", "IF3pwr"],
-                                     ["IF4kurt", "IF4pwr"]])
+                     output_names = [["IF1pwr"],
+                                     ["IF2pwr"],
+                                     ["IF3pwr"],
+                                     ["IF4pwr"]])
   equipment['Backend'] = BE                         
   return obs, equipment
 
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.DEBUG)
+  mylogger = logging.getLogger()
+  mylogger.setLevel(logging.DEBUG)
+  
+  from MonitorControl.Configurations import station_configuration
 
-  from MonitorControl.Configurations.configGDSCC.DTO import station_configuration
-  obs, tel, fe, rx, IFswitch, sample_clk, BE = station_configuration()
-  print "obs =",obs
-  print "tel =",tel
-  print "fe =",fe
-  print "rx =",rx
-  print "IFswitch =",IFswitch
-  print "Sample clock =", sample_clk
-  print "Backend =", BE
+  obs, equipment = station_configuration('DTO-32K')
+  print "obs =", obs
+  tel = equipment['Telescope']
+  fe = equipment['FrontEnd']
+  rx = equipment['Receiver']
+  print "tel =", tel
+  print "fe =", fe
+  print "rx =", rx
+  IFswitch = equipment['IF_switch']
+  print "IFswitch =", IFswitch
+  BE = equipment['Backend']
+  print "BE =", BE
