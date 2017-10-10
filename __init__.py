@@ -31,6 +31,8 @@ feeds = {}
 
 mech = {14:{'diam': 70,
             'type': 'cas'},
+        15:{'diam': 34,
+            'type': 'HEF'},
         13:{'diam': 34,
             'type': 'BWG'},
         24:{'diam': 34,
@@ -42,6 +44,8 @@ mech = {14:{'diam': 70,
 
 wrap = {14: {'stow_az': 180,
              'wrap':    {'center':  45}},
+        15: {'stow_az': 0,
+             'wrap':    {'center': 135}},
         24: {'stow_az': 0,
              'wrap':    {'center': 135}},
         25: {'stow_az': 0,
