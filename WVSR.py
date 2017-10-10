@@ -22,27 +22,36 @@ def station_configuration(equipment, project, dss, year, doy, band,
   """
   describe a standard DSN Complex with WVSR recorders
   """
-  rx_name = band+str(dss)
-  rx = equipment['Receiver'][rx_name]
   collector = WVSRmetadataCollector(project, dss, year, doy)
-  BE_inputs = {}
-  output_names = []
+  if equipment:
+    pass
+  else:
+    equipment = standard_equipment(dss, band)
   for wvsr in collector.wvsr_cfg.keys():
+    BE_inputs = {}
+    output_names = []
     for IF in collector.wvsr_cfg[wvsr]['channels']:
-      BE_inputs["IF"+str(IF)] = rx.outputs[rx_name + \
+      band = collector.wvsr_cfg[wvsr][IF]['IF_source'].split('_')[1]
+      rx_name = band+str(dss)
+      rx = equipment['Receiver'][rx_name]
+      # the following depends on a naming convention which uses names like
+      # 'wvsr.IF1' and 'X14.chan_id 1.I' using '.' as separatots
+      BE_inputs[wvsr+".IF"+str(IF)] = rx.outputs[rx_name + \
                                  collector.wvsr_cfg[wvsr][IF]['pol'][0] + 'U']
     for subch in collector.wvsr_cfg[wvsr][1]['subchannels']:
         for Stokes in ['I', 'Q', 'U', 'V']:
-          output_names.append(rx_name + "_"+subch+"_"+Stokes)
-  logger.debug("station_configuration: BE inputs: %s", BE_inputs)
-  logger.debug("station_configuration: BE outputs: %s", output_names)
-  BE = ClassInstance(Backend,
-                     WVSRbackend,
-                     "WVSR spectrometer",
-                     collector,
-                     inputs = BE_inputs,
-                     output_names = output_names)
-  equipment['Backend'] = BE
+          # use '_' to separate the name parts
+          output_names.append(rx_name + "."+subch+"."+Stokes)
+    logger.debug("station_configuration: BE inputs: %s", BE_inputs)
+    logger.debug("station_configuration: BE outputs: %s", output_names)
+  
+    BE = ClassInstance(Backend,
+                       WVSRbackend,
+                       wvsr,
+                       collector,
+                       inputs = BE_inputs,
+                       output_names = output_names)
+    equipment['Backend'] = BE
   return equipment
   
 if __name__ == "__main__":
@@ -54,7 +63,7 @@ if __name__ == "__main__":
                         loglevel = logging.INFO,
                         consolevel = logging.DEBUG,
                         logname = "/var/tmp/WVSRbe.log")
-  equipment = standard_equipment(14)
+  #equipment = standard_equipment(14)
   equipment = station_configuration(equipment,'AUTO_EGG', 14, 2016, 237, 'X')
   
   show_signal_path([equipment['FrontEnd']['X14'],
