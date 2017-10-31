@@ -35,5 +35,12 @@ mech = {14:{'diam': 70,
             'type': 'BWG'}}
 
 wrap = {14: {'stow_az': 180,
-             'wrap':    {'center': 45}}}
+             'wrap':    {'center': 45}},
+        24: {'stow_az': 180,
+             'wrap':    {'center': 45}},
+        25: {'stow_az': 180,
+             'wrap':    {'center': 45}},
+        26: {'stow_az': 180,
+             'wrap':    {'center': 45}},
+        }
 
