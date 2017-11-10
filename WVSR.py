@@ -17,12 +17,12 @@ from support.logs import init_logging, get_loglevel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def station_configuration(equipment, project, dss, year, doy, band,
-                          roach_loglevel=None):
+def station_configuration(equipment, project, dss, year, doy, time,
+                          band, roach_loglevel=None):
   """
   describe a standard DSN Complex with WVSR recorders
   """
-  collector = WVSRmetadataCollector(project, dss, year, doy)
+  collector = WVSRmetadataCollector(project, dss, year, doy, time)
   if equipment:
     pass
   else:
