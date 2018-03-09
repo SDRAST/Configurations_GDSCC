@@ -37,11 +37,12 @@ if n_roaches < 1:
   raise ObservatoryError("", "Cannot proceed without ROACHes")
 roaches = ROACHlist[:2]
 
-cfg = {14: {'S':['R','L'], 'X':['R','L']},
-       15: {'S':['R'], 'X':['R']},
-       24: {'S':['R'], 'X':['R'], 'Ka':['R']},
-       25: {'X':['R','L'], 'Ka':['R']},
-       26: {'X':['R','L'], 'Ka':['R']}}
+# use cfg from GDSCC module instead
+#cfg = {14: {'S':['R','L'], 'X':['R','L']},
+#       15: {'S':['R'], 'X':['R']},
+#       24: {'S':['R'], 'X':['R'], 'Ka':['R']},
+#       25: {'X':['R','L'], 'Ka':['R']},
+#       26: {'X':['R','L'], 'Ka':['R']}}
 
 def station_configuration(equipment, roach_loglevel=logging.WARNING):
   """
@@ -54,7 +55,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   The front end names are constructed from the dict `cfg'.  The initialization
   of 'DSN_fe' depends on this to know the band name.
   """
-  # Define the site
+  # Define the site !!!!!!!!!!!!!!!!!!!! replace with DSN_standard!!!!!!!!!
   obs = Observatory("GDSCC")
   tel = {}
   fe = {}
