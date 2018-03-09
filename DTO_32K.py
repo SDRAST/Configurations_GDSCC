@@ -11,18 +11,19 @@ independent data stream.
 """
 import logging
 
+from Electronics.Instruments import Synthesizer
+from Electronics.Instruments.JFW50MS import MS287client
+from Electronics.Instruments.Valon import Valon1, Valon2
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError, Switch
+from MonitorControl.BackEnds import Backend
+from MonitorControl.BackEnds.ROACH1 import SAOspec
+from MonitorControl.BackEnds.ROACH1.SAOfwif import SAObackend
 from MonitorControl.Configurations.GDSCC import cfg
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
-from MonitorControl.BackEnds import Backend
-from MonitorControl.BackEnds.ROACH1.SAOspec import SAOspec
-from Electronics.Instruments import Synthesizer
-from Electronics.Instruments.JFW50MS import MS287client
-from Electronics.Instruments.Valon import Valon1, Valon2
 from support.network import LAN_hosts_status
 
 module_logger = logging.getLogger(__name__)
@@ -138,13 +139,9 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                      SAOspec,
                      "32K Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
-                               "Ro1In2": IFswitch.outputs['IF2'],
-                               "Ro2In1": IFswitch.outputs['IF3'],
-                               "Ro2In2": IFswitch.outputs['IF4']},
+                               "Ro2In1": IFswitch.outputs['IF3']},
                      output_names = [["IF1pwr"],
-                                     ["IF2pwr"],
-                                     ["IF3pwr"],
-                                     ["IF4pwr"]])
+                                     ["IF2pwr"]])
   equipment['Backend'] = BE                         
   return obs, equipment
 
