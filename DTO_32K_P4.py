@@ -15,10 +15,11 @@ import Pyro
 from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287client
 from Electronics.Instruments.Valon import Valon1, Valon2
-from MonitorControl import ClassInstance, Device, Observatory, Telescope
+from MonitorControl import ClassInstance, Device, Observatory
 from MonitorControl import ObservatoryError, Switch
+from MonitorControl.Antenna import Telescope
 from MonitorControl.BackEnds import Backend
-#from MonitorControl.BackEnds.ROACH1 import SAOspec
+from MonitorControl.BackEnds.ROACH1 import SAOspec
 from MonitorControl.BackEnds.ROACH1.SAOfwif import SAObackend
 from MonitorControl.Configurations.GDSCC import cfg
 from MonitorControl.FrontEnds import FrontEnd
@@ -27,17 +28,33 @@ from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
 from support.network import LAN_hosts_status
 
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-up, down, IP, MAC, ROACHlist = LAN_hosts_status()
-n_roaches = len(ROACHlist)
-if n_roaches < 2:
-  module_logger.warning("Only %d ROACHes available", n_roaches)
-if n_roaches < 1:
-  raise ObservatoryError("", "Cannot proceed without ROACHes")
-roaches = ROACHlist[:2]
+                             
+def make_switch_inputs(rx):
+  """
+  """
+  inputs = {}
+  for index in range(1,25):
+    inputs["In%02d" % index] = None
+  for dss in cfg.keys():
+    logger.debug("make_switch_inputs: doing DSS %d", dss)
+    for band in cfg[dss].keys():
+      logger.debug("make_switch_inputs: doing band %s", band)
+      logger.debug("make_switch_inputs: details: %s", cfg[dss][band])
+      for pol in cfg[dss][band].keys():
+        swin = "In%02d" % cfg[dss][band][pol]
+        rxout = band+str(dss)+pol+"U"
+        inputs[swin] = rx[band+str(dss)].outputs[rxout]
+        logger.debug("DSS-%2d %s %s goes to %s from %s",
+                     dss, band, pol, swin, rxout)
+  inputs.pop("In00") # all the receivers not connected to switch inputs
+  print "make_switch_inputs: %s" % inputs
+  return inputs
 
-def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=None):
+def station_configuration(equipment,
+                          roach_loglevel=logging.WARNING,
+                          hardware=None):
   """
   Describe a DSN Complex
 
@@ -51,6 +68,9 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=No
   @param equipment : equipment in addition to what is defined here
   @type  equipment : dict of Device subclass objects
   
+  @param roachlist : ROACHs to be used with this configuration; default: all
+  @type  roachlist : list of str
+  
   @param roach_loglevel : log level for the ROACH loggers
   @type  roach_loglevel : str
   
@@ -63,11 +83,12 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=No
         "FrontEnd":    True,  # currently we have no control over the front ends
         "Receiver":    True,  # currently we have no control over the receivers
         "IF_switch":   {"DTO": True},    # allow multiple switches
-        "Synthesizer": True,
-        "Backend":     True
+        "Synthesizer": False,
+        "Backend":     False
       }
   if equipment is None:
       equipment = {}
+    
   # Define the site
   obs = Observatory("GDSCC")
   tel = {}
@@ -76,23 +97,22 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=No
   # For each station at the site, get a Telescope object, FrontEnd objects,
   # Receiver objects, Switch objects
   for dss in cfg.keys():                                 # 14,...,26
-    module_logger.debug("station_configuration: processing DSS-%d", dss)
+    logger.debug("station_configuration: processing DSS-%d", dss)
     # define the telescope
-    tel[dss] = Telescope(obs, dss=dss, hardware=hardware["Antenna"])
+    tel[dss] = Telescope(obs, dss=dss, active=hardware["Antenna"])
     # for each band available on the telescope
     for band in cfg[dss].keys():                         # S, X, Ka
-      module_logger.debug("station_configuration: processing band %s", dss)
+      logger.debug("station_configuration: processing band %s", dss)
       fename = band+str(dss)
       outnames = []
       # for each polarization processed by the receiver
       for pol in cfg[dss][band].keys():                  # L, R
-        module_logger.debug("station_configuration: processing pol %s", pol)
+        logger.debug("station_configuration: processing pol %s", pol)
         outnames.append(fename+pol)   #   cfg[dss][band][pol])
-      module_logger.debug("station_configuration: FE output names: %s", outnames)
+      logger.debug("station_configuration: FE output names: %s", outnames)
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
-                                 hardware=hardware["FrontEnd"],
                                  inputs = {fename:
                                            tel[dss].outputs[tel[dss].name]},
                                  output_names = outnames)
@@ -104,55 +124,33 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=No
       rx[fename] = ClassInstance(Receiver, 
                                  DSN_rx, 
                                  fename,
-                                 hardware=hardware["Receiver"],
                                  inputs = rx_inputs,
                                  output_names = rx_outnames)
   equipment['Telescope'] = tel
   equipment['FrontEnd'] = fe
   equipment['Receiver'] = rx
   #This part has to be done by hand to show the physical cabling
+  #print make_switch_inputs(rx)
   try:
     IFswitch = ClassInstance(Device,
                            MS287client,
                            "Matrix Switch",
-                           inputs={'In01': rx['S24'].outputs['S24RU'],
-                                   'In02': rx['S26'].outputs['S26RU'],
-                                   'In03': rx['X15'].outputs['X15RU'],
-                                   'In04': rx['X25'].outputs['X25RU'],
-                                   'In05': rx['Ka25'].outputs['Ka25RU'],
-                                   'In06': rx['S15'].outputs['S15RU'],
-                                   'In07': rx['X26'].outputs['X26RU'],
-                                   'In08': rx['Ka26'].outputs['Ka26RU'],
-                                   'In09': rx['S14'].outputs['S14RU'],
-                                   'In10': rx['X14'].outputs['X14RU'],
-                                   'In11': None,
-                                   'In12': None,
-                                   'In13': None,
-                                   'In14': None,
-                                   'In15': None,
-                                   'In16': None,
-                                   'In17': None,
-                                   'In18': None,
-                                   'In19': None,
-                                   'In20': None,
-                                   'In21': None,
-                                   'In22': None,
-                                   'In23': None,
-                                   'In24': None},
+                           inputs=make_switch_inputs(rx),
                            output_names=['IF1', 'IF2', 'IF3', 'IF4'])
-  except Pyro.errors.NamingError:
-    module_logger.error("Is the MS287 IF switch server running?")
-  equipment['IF_switch'] = {"DTO": IFswitch}
+    equipment['IF_switch'] = {"DTO": IFswitch}
+  except Pyro.errors.NamingError, details:
+    logger.error("Is the MS287 IF switch server running?")
+    raise Pyro.errors.NamingError("Is the MS287 IF switch server running?")
   sample_clk = {}
   sample_clk[0] = ClassInstance(Synthesizer,Valon1,timeout=10)
   sample_clk[1] = ClassInstance(Synthesizer,Valon2,timeout=10)
-  module_logger.debug(" roach1 sample clock is %f",
+  logger.debug(" roach1 sample clock is %f",
                  sample_clk[0].get_p("frequency"))
-  module_logger.debug(" roach2 sample clock is %f",
+  logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
-  equipment['Synthesizer'] 
+  equipment['Synthesizer'] = sample_clk
   BE = ClassInstance(Backend,
-                     SAObackend,
+                     SAOspec,
                      "32K Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
                                "Ro2In1": IFswitch.outputs['IF3']},

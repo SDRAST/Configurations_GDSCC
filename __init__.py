@@ -11,43 +11,43 @@ References
 ==========
 http://deepspace.jpl.nasa.gov/dsndocs/810-005/302/302C.pdf
 
-Attachment to e-mail from Alina Bedrossian on 03/21/2017 at 09:16 AM gives 
-this assignment::
-  Antenna Type	Switch	CDSCC	  GDSCC	  MDSCC
-      BWG1	      1	    34_S1	  24_S1	  54_S1
-	                2	    34_X1	  26_S1	  54_X1
-	                3	    34_Ka1	15_X1	  54_Ka1
-      BWG2	      4	    35_X1	  25_X1	  55_X1
-	                5	    35_Ka1	25_Ka1	55_Ka1
-      BWG3	      6	    36_S1	  15_S1	  65_S1
-	                7	    36_X1	  26_X1	  65_X1
-	                8	    36_Ka1	26_Ka1	63_X2
-      70-m	      9	    43_S1	  14_S1	  63_S1
-	               10	    43_X1	  14_X1	  63_X1
-      AUX	       11	    AUX1	  AUX1	  AUX1
-	               12	    AUX2	  AUX2	  AUX2
+The following are from a diagram by Les (DVP_blk_diag.pdf) and table from
+Larry (DVP-DTO.jpg)::
+   14XR  -> J1A  ->  2
+   14XL  -> J2A  ->  4
+   14SR  -> J3A  ->
+   14SL  -> J4A  ->  8
+   15XR  -> J5A  -> 10
+   15SR  -> J6A  ->  6
+   25XR  -> J7A  -> 18
+   25KaR -> J8A  -> 20
+   26XR  -> J9A  ->
+   26KaR -> J10A ->
+   24XR  -> J11A ->
+   24KaR -> J12A -> 24
 
 """
 import logging
 
 logger = logging.getLogger(__name__)
 
-cfg = {14: {'S' :{'R':9,     # S14RU
-                  'L':0},
-            'X' :{'R':10,    # X14RU
-                  'L':0}},
-       15: {'S' :{'R':6},    # S15RU
-            'X' :{'R':3}},   # X15RU
-       24: {'S' :{'R':1},    # S24RU
-            'X' :{'R':0,
-                  'L':0},
-            'Ka':{'R':0}},
-       25: {'X' :{'R':4},    # X25RU
-            'Ka':{'R':5}},   # Ka25RU
-       26: {'S' :{'R':2},    # S26RU
-            'X' :{'R':7,     # X26RU
-                  'L':0},
-            'Ka':{'R':8}}}   # Ka26RU
+#     0 means not connected
+cfg = {14: {'S' :{'R': 4,     # J2A  14S
+                  'L': 0},    #     
+            'X' :{'R': 0,     #     
+                  'L': 0}},   #     
+       15: {'S' :{'R': 0},    #      
+            'X' :{'R': 0}},   #      
+       24: {'S' :{'R': 2},    # J1A  24S
+            'X' :{'R': 0,     #
+                  'L': 0},    #
+            'Ka':{'R': 0}},   #      
+       25: {'X' :{'R': 0},    #      
+            'Ka':{'R': 0}},   #      
+       26: {'S' :{'R': 0},    # 
+            'X' :{'R':18,     # J7A  26X
+                  'L': 0},    #
+            'Ka':{'R':20}}}   # J8A  26K
 
 feeds = {}
 
