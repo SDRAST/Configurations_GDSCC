@@ -13,14 +13,15 @@ import logging
 
 from . import cfg
 
-from MonitorControl import ClassInstance, Device, Observatory, Telescope
+from MonitorControl import ClassInstance, Device, Observatory
+from MonitorControl.Antenna import Telescope
 from MonitorControl import ObservatoryError, Switch
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
 from MonitorControl.BackEnds import Backend
-from MonitorControl.BackEnds.ROACH1.KurtSpec import KurtosisSpectrometer
+from MonitorControl.BackEnds.ROACH1.SAOspec import SAOspec
 from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287client
 from Electronics.Instruments.Valon import Valon1, Valon2
@@ -44,7 +45,10 @@ roaches = ROACHlist[:2]
 #       25: {'X':['R','L'], 'Ka':['R']},
 #       26: {'X':['R','L'], 'Ka':['R']}}
 
-def station_configuration(equipment, roach_loglevel=logging.WARNING):
+def station_configuration(equipment, roach_loglevel=logging.WARNING,
+                          hardware={"sampling_clock": False,
+                                    "IF_switch":      False,
+                                    "Backend":        False}):
   """
   Describe a DSN Complex
 
@@ -69,8 +73,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
       fename = band+str(dss)
       outnames = []
       # for each polarization processed by the receiver
-      for polindex in range(len(cfg[dss][band])):
-        outnames.append(fename+cfg[dss][band][polindex])
+      for polindex in range(len(cfg[dss][band].keys())):
+        outnames.append(fename+cfg[dss][band].keys()[polindex])
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
@@ -91,7 +95,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   equipment['FrontEnd'] = fe
   equipment['Receiver'] = rx
   #This part has to be done by hand to show the physical cabling
-  IFswitch = ClassInstance(Device,
+  if hardware['IF_switch']:
+    IFswitch = ClassInstance(Device,
                            MS287client,
                            "Matrix Switch",
                            inputs={'In01': rx['S14'].outputs['S14RU'],
@@ -104,7 +109,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                                    'In08': rx['X24'].outputs['X24RU'],
                                    'In09': rx['Ka24'].outputs['Ka24RU'],
                                    'In10': rx['X25'].outputs['X25RU'],
-                                   'In11': rx['X25'].outputs['X25LU'],
+                                   'In11': None,
                                    'In12': rx['Ka25'].outputs['Ka25RU'],
                                    'In13': rx['X26'].outputs['X26RU'],
                                    'In14': rx['X26'].outputs['X26LU'],
@@ -119,18 +124,24 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                                    'In23': None,
                                    'In24': None},
                            output_names=['IF1', 'IF2', 'IF3', 'IF4'])
-  equipment['IF_switch'] = {"DTO": IFswitch}
-  sample_clk = {}
-  sample_clk[0] = ClassInstance(Synthesizer,Valon1,timeout=10)
-  sample_clk[1] = ClassInstance(Synthesizer,Valon2,timeout=10)
-  module_logger.debug(" roach1 sample clock is %f",
+    equipment['IF_switch'] = {"DTO": IFswitch}
+  else:
+    equipment['IF_switch'] = None
+  if hardware['sampling_clock']:
+    sample_clk = {}
+    sample_clk[0] = ClassInstance(Synthesizer,Valon1,timeout=10)
+    sample_clk[1] = ClassInstance(Synthesizer,Valon2,timeout=10)
+    module_logger.debug(" roach1 sample clock is %f",
                  sample_clk[0].get_p("frequency"))
-  module_logger.debug(" roach2 sample clock is %f",
+    module_logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
-  equipment['sampling_clock'] = sample_clk
-  BE = ClassInstance(Backend,
-                     KurtosisSpectrometer,
-                     "Kurtosis Spectrometer",
+    equipment['sampling_clock'] = sample_clk
+  else:
+    equipment['sampling_clock'] = None
+  if hardware['Backend']:
+    BE = ClassInstance(Backend,
+                     SAOspec,
+                     "TAMS Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
                                "Ro1In2": IFswitch.outputs['IF2'],
                                "Ro2In1": IFswitch.outputs['IF3'],
@@ -139,7 +150,9 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                                      ["IF2kurt", "IF2pwr"],
                                      ["IF3kurt", "IF3pwr"],
                                      ["IF4kurt", "IF4pwr"]])
-  equipment['Backend'] = BE                         
+    equipment['Backend'] = BE 
+  else:
+    equipment['Backend'] = None
   return obs, equipment
 
 if __name__ == "__main__":
