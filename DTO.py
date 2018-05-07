@@ -15,6 +15,12 @@ from Electronics.Instruments import Synthesizer
 from Electronics.Instruments.JFW50MS import MS287client
 from Electronics.Instruments.Valon import Valon1, Valon2
 from MonitorControl import ClassInstance, Device, Observatory
+try:
+  from . import cfg
+except:
+  pass
+from MonitorControl import ClassInstance, Device, Observatory
+from MonitorControl.Antenna import Telescope
 from MonitorControl import ObservatoryError, Switch
 from MonitorControl.Antenna import Telescope
 from MonitorControl.Configurations.GDSCC import cfg, make_switch_inputs
@@ -23,7 +29,6 @@ from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
 from MonitorControl.BackEnds import Backend
-#from MonitorControl.BackEnds.ROACH1.KurtSpec import KurtosisSpectrometer
 from MonitorControl.BackEnds.ROACH1 import KurtSpec_client
 from support.network import LAN_hosts_status
 
@@ -38,7 +43,10 @@ if n_roaches < 1:
   raise ObservatoryError("", "Cannot proceed without ROACHes")
 roaches = ROACHlist[:2]
 
-def station_configuration(equipment, roach_loglevel=logging.WARNING):
+def station_configuration(equipment, roach_loglevel=logging.WARNING,
+                          hardware={"sampling_clock": False,
+                                    "IF_switch":      False,
+                                    "Backend":        False}):
   """
   Describe a DSN Complex
 
@@ -64,10 +72,15 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
       fename = band+str(dss)
       outnames = []
       # for each polarization processed by the receiver
-      for pol in cfg[dss][band].keys():                  # L, R
-        logger.debug("station_configuration: processing pol %s", pol)
-        outnames.append(fename+pol)   #   cfg[dss][band][pol])
-      logger.debug("station_configuration: FE output names: %s", outnames)
+#<<<<<<< HEAD
+#      for pol in cfg[dss][band].keys():                  # L, R
+#        logger.debug("station_configuration: processing pol %s", pol)
+#        outnames.append(fename+pol)   #   cfg[dss][band][pol])
+#      logger.debug("station_configuration: FE output names: %s", outnames)
+#=======
+      for polindex in range(len(cfg[dss][band].keys())):
+        outnames.append(fename+cfg[dss][band].keys()[polindex])
+#>>>>>>> 0a7eb03e4a835ee1bd8dcbf704eb0131fd727e93
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
@@ -88,7 +101,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
   equipment['FrontEnd'] = fe
   equipment['Receiver'] = rx
   #This part has to be done by hand to show the physical cabling
-  IFswitch = ClassInstance(Device,
+  if hardware['IF_switch']:
+    IFswitch = ClassInstance(Device,
                            MS287client,
                            "Matrix Switch",
                            inputs=make_switch_inputs(rx),
@@ -113,7 +127,9 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                                      ["IF2kurt", "IF2pwr"],
                                      ["IF3kurt", "IF3pwr"],
                                      ["IF4kurt", "IF4pwr"]])
-  equipment['Backend'] = BE                         
+    equipment['Backend'] = BE 
+  else:
+    equipment['Backend'] = None
   return obs, equipment
 
 if __name__ == "__main__":
