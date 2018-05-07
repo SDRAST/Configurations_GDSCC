@@ -11,21 +11,19 @@ References
 ==========
 http://deepspace.jpl.nasa.gov/dsndocs/810-005/302/302C.pdf
 
-The following are from a diagram by Les (DVP_blk_diag.pdf) and table from
-Larry (DVP-DTO.jpg)::
-   14XR  -> J1A  ->  2
-   14XL  -> J2A  ->  4
-   14SR  -> J3A  ->
-   14SL  -> J4A  ->  8
-   15XR  -> J5A  -> 10
-   15SR  -> J6A  ->  6
-   25XR  -> J7A  -> 18
-   25KaR -> J8A  -> 20
-   26XR  -> J9A  ->
-   26KaR -> J10A ->
-   24XR  -> J11A ->
-   24KaR -> J12A -> 24
-
+The following are from cable tracing and table from Larry (DVP-DTO.jpg)::
+   24SR  -> J1A  ->  2
+   14SR  -> J2A  ->  4
+         -> J3A  ->
+         -> J4A  ->  8
+         -> J5A  -> 10
+         -> J6A  ->  6
+   26XR  -> J7A  -> 18
+   26KaR -> J8A  -> 20
+         -> J9A  ->
+         -> J10A ->
+         -> J11A ->
+         -> J12A -> 24
 """
 import logging
 
@@ -75,4 +73,25 @@ wrap = {14: {'stow_az': 180,
         26: {'stow_az': 0,
              'wrap':    {'center': 135}}}
 
+def make_switch_inputs(rx):
+  """
+  Identifies the signals going into the IF switch
+  """
+  inputs = {}
+  for index in range(1,25):
+    inputs["In%02d" % index] = None
+  for dss in cfg.keys():
+    logger.debug("make_switch_inputs: doing DSS %d", dss)
+    for band in cfg[dss].keys():
+      logger.debug("make_switch_inputs: doing band %s", band)
+      logger.debug("make_switch_inputs: details: %s", cfg[dss][band])
+      for pol in cfg[dss][band].keys():
+        swin = "In%02d" % cfg[dss][band][pol]
+        rxout = band+str(dss)+pol+"U"
+        inputs[swin] = rx[band+str(dss)].outputs[rxout]
+        logger.debug("DSS-%2d %s %s goes to %s from %s",
+                     dss, band, pol, swin, rxout)
+  inputs.pop("In00") # all the receivers not connected to switch inputs
+  print "make_switch_inputs: %s" % inputs
+  return inputs
 
