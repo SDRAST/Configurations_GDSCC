@@ -43,10 +43,11 @@ if n_roaches < 1:
   raise ObservatoryError("", "Cannot proceed without ROACHes")
 roaches = ROACHlist[:2]
 
-def station_configuration(equipment, roach_loglevel=logging.WARNING,
-                          hardware={"sampling_clock": False,
-                                    "IF_switch":      False,
-                                    "Backend":        False}):
+def station_configuration(equipment,
+                          roach_loglevel=logging.WARNING,
+                          hardware={"sampling_clock": True,
+                                    "IF_switch":      True,
+                                    "Backend":        True}):
   """
   Describe a DSN Complex
 
@@ -57,7 +58,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING,
   The front end names are constructed from the dict `cfg'.  The initialization
   of 'DSN_fe' depends on this to know the band name.
   """
-  # Define the site !!!!!!!!!!!!!!!!!!!! replace with DSN_standard!!!!!!!!!
+  print "DTO:", hardware
+  # Define the site
   obs = Observatory("GDSCC")
   tel = {}
   fe = {}
@@ -72,15 +74,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING,
       fename = band+str(dss)
       outnames = []
       # for each polarization processed by the receiver
-#<<<<<<< HEAD
-#      for pol in cfg[dss][band].keys():                  # L, R
-#        logger.debug("station_configuration: processing pol %s", pol)
-#        outnames.append(fename+pol)   #   cfg[dss][band][pol])
-#      logger.debug("station_configuration: FE output names: %s", outnames)
-#=======
       for polindex in range(len(cfg[dss][band].keys())):
         outnames.append(fename+cfg[dss][band].keys()[polindex])
-#>>>>>>> 0a7eb03e4a835ee1bd8dcbf704eb0131fd727e93
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
@@ -116,7 +111,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING,
   logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
   equipment['sampling_clock'] = sample_clk
-  BE = ClassInstance(Backend,
+  if hardware["Backend"]:
+    BE = ClassInstance(Backend,
                      KurtSpec_client,
                      "Kurtosis Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
@@ -129,12 +125,20 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING,
                                      ["IF4kurt", "IF4pwr"]])
     equipment['Backend'] = BE 
   else:
-    equipment['Backend'] = None
+    equipment['Backend'] = Device("Kurtosis Spectrometer",
+                     inputs = {"Ro1In1": IFswitch.outputs['IF1'],
+                               "Ro1In2": IFswitch.outputs['IF2'],
+                               "Ro2In1": IFswitch.outputs['IF3'],
+                               "Ro2In2": IFswitch.outputs['IF4']},
+                     output_names = [["IF1kurt", "IF1pwr"],
+                                     ["IF2kurt", "IF2pwr"],
+                                     ["IF3kurt", "IF3pwr"],
+                                     ["IF4kurt", "IF4pwr"]])
   return obs, equipment
 
 if __name__ == "__main__":
 
-  from MonitorControl.Configurations.configGDSCC.DTO import station_configuration
+  from MonitorControl.Configurations.GDSCC.DTO import station_configuration
   obs, tel, fe, rx, IFswitch, sample_clk, BE = station_configuration()
   print "obs =",obs
   print "tel =",tel
