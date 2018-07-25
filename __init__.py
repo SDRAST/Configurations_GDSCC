@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 #     0 means not connected
 cfg = {14: {'S' :{'R': 4,     # J2A  14S
                   'L': 0},    #     
-            'X' :{'R': 0,     #     
+            'X' :{'R': 6,     # J10A 14X
                   'L': 0}},   #     
        15: {'S' :{'R': 0},    #      
             'X' :{'R': 0}},   #      
