@@ -21,7 +21,7 @@ from MonitorControl.Antenna import Telescope
 from MonitorControl.BackEnds import Backend
 from MonitorControl.BackEnds.ROACH1 import SAOspec
 from MonitorControl.BackEnds.ROACH1.SAOfwif import SAObackend
-from MonitorControl.Configurations.GDSCC import cfg
+from MonitorControl.Configurations.GDSCC import cfg, make_switch_inputs
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
@@ -30,27 +30,6 @@ from support.network import LAN_hosts_status
 
 logger = logging.getLogger(__name__)
 
-                             
-def make_switch_inputs(rx):
-  """
-  """
-  inputs = {}
-  for index in range(1,25):
-    inputs["In%02d" % index] = None
-  for dss in cfg.keys():
-    logger.debug("make_switch_inputs: doing DSS %d", dss)
-    for band in cfg[dss].keys():
-      logger.debug("make_switch_inputs: doing band %s", band)
-      logger.debug("make_switch_inputs: details: %s", cfg[dss][band])
-      for pol in cfg[dss][band].keys():
-        swin = "In%02d" % cfg[dss][band][pol]
-        rxout = band+str(dss)+pol+"U"
-        inputs[swin] = rx[band+str(dss)].outputs[rxout]
-        logger.debug("DSS-%2d %s %s goes to %s from %s",
-                     dss, band, pol, swin, rxout)
-  inputs.pop("In00") # all the receivers not connected to switch inputs
-  print "make_switch_inputs: %s" % inputs
-  return inputs
 
 def station_configuration(equipment,
                           roach_loglevel=logging.WARNING,
