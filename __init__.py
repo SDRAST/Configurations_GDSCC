@@ -21,7 +21,7 @@ The following are from cable tracing and table from Larry (DVP-DTO.jpg)::
    26XR  -> J7A  -> 18
    26KaR -> J8A  -> 20
          -> J9A  ->
-         -> J10A ->
+   14XR  -> J10A ->
          -> J11A ->
          -> J12A -> 24
 """
