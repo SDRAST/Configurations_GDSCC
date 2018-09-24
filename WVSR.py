@@ -17,12 +17,20 @@ from support.logs import init_logging, get_loglevel
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def station_configuration(equipment, project, dss, year, doy, band,
-                          roach_loglevel=None):
+def station_configuration(equipment, project, dss, year, doy, time,
+                          band, collector=None, roach_loglevel=None):
   """
   describe a standard DSN Complex with WVSR recorders
+  
+  @param equipment : empty dict initialized by main 'station_configuration'
+  @type  equipment : dict
+  
+  @param project : 
   """
-  collector = WVSRmetadataCollector(project, dss, year, doy)
+  if collector:
+    pass
+  else:
+    collector = WVSRmetadataCollector(project, dss, year, doy, time)
   if equipment:
     pass
   else:

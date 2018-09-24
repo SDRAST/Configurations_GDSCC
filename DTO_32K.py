@@ -10,19 +10,21 @@ The output channels must have unique names because each has its own
 independent data stream.
 """
 import logging
+import Pyro
 
+from Electronics.Instruments import Synthesizer
+from Electronics.Instruments.JFW50MS import MS287client
+from Electronics.Instruments.Valon import Valon1, Valon2
 from MonitorControl import ClassInstance, Device, Observatory, Telescope
 from MonitorControl import ObservatoryError, Switch
+from MonitorControl.BackEnds import Backend
+#from MonitorControl.BackEnds.ROACH1 import SAOspec
+from MonitorControl.BackEnds.ROACH1.SAOfwif import SAObackend
 from MonitorControl.Configurations.GDSCC import cfg
 from MonitorControl.FrontEnds import FrontEnd
 from MonitorControl.FrontEnds.DSN import DSN_fe
 from MonitorControl.Receivers import Receiver
 from MonitorControl.Receivers.DSN import DSN_rx
-from MonitorControl.BackEnds import Backend
-from MonitorControl.BackEnds.ROACH1.SAOspec import SAOspec
-from Electronics.Instruments import Synthesizer
-from Electronics.Instruments.JFW50MS import MS287client
-from Electronics.Instruments.Valon import Valon1, Valon2
 from support.network import LAN_hosts_status
 
 module_logger = logging.getLogger(__name__)
@@ -35,19 +37,7 @@ if n_roaches < 1:
   raise ObservatoryError("", "Cannot proceed without ROACHes")
 roaches = ROACHlist[:2]
 
-#cfg = {14: {'S': ['R','L'],
-#            'X': ['R','L']},
-#       15: {'S': ['R'],
-#            'X': ['R']},
-#       24: {'S': ['R'],
-#            'X': ['R'],
-#            'Ka':['R']},
-#       25: {'X': ['R','L'],
-#            'Ka':['R']},
-#       26: {'X': ['R','L'],
-#            'Ka':['R']}}
-
-def station_configuration(equipment, roach_loglevel=logging.WARNING):
+def station_configuration(equipment, roach_loglevel=logging.WARNING, hardware=None):
   """
   Describe a DSN Complex
 
@@ -57,17 +47,38 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
 
   The front end names are constructed from the dict `cfg'.  The initialization
   of 'DSN_fe' depends on this to know the band name.
+  
+  @param equipment : equipment in addition to what is defined here
+  @type  equipment : dict of Device subclass objects
+  
+  @param roach_loglevel : log level for the ROACH loggers
+  @type  roach_loglevel : str
+  
+  @param hardware : hardware which is available or to be tested
+  @type  hardware : dict of boolean
   """
+  if hardware is None:
+      hardware = {
+        "Antenna":     False,
+        "FrontEnd":    True,  # currently we have no control over the front ends
+        "Receiver":    True,  # currently we have no control over the receivers
+        "IF_switch":   {"DTO": True},    # allow multiple switches
+        "Synthesizer": True,
+        "Backend":     True
+      }
+  if equipment is None:
+      equipment = {}
   # Define the site
   obs = Observatory("GDSCC")
   tel = {}
   fe = {}
   rx = {}
-  # For each station at the site
+  # For each station at the site, get a Telescope object, FrontEnd objects,
+  # Receiver objects, Switch objects
   for dss in cfg.keys():                                 # 14,...,26
     module_logger.debug("station_configuration: processing DSS-%d", dss)
     # define the telescope
-    tel[dss] = Telescope(obs, dss=dss)
+    tel[dss] = Telescope(obs, dss=dss, hardware=hardware["Antenna"])
     # for each band available on the telescope
     for band in cfg[dss].keys():                         # S, X, Ka
       module_logger.debug("station_configuration: processing band %s", dss)
@@ -81,6 +92,7 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
       fe[fename] = ClassInstance(FrontEnd, 
                                  DSN_fe, 
                                  fename,
+                                 hardware=hardware["FrontEnd"],
                                  inputs = {fename:
                                            tel[dss].outputs[tel[dss].name]},
                                  output_names = outnames)
@@ -92,13 +104,15 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
       rx[fename] = ClassInstance(Receiver, 
                                  DSN_rx, 
                                  fename,
+                                 hardware=hardware["Receiver"],
                                  inputs = rx_inputs,
                                  output_names = rx_outnames)
   equipment['Telescope'] = tel
   equipment['FrontEnd'] = fe
   equipment['Receiver'] = rx
   #This part has to be done by hand to show the physical cabling
-  IFswitch = ClassInstance(Device,
+  try:
+    IFswitch = ClassInstance(Device,
                            MS287client,
                            "Matrix Switch",
                            inputs={'In01': rx['S24'].outputs['S24RU'],
@@ -126,6 +140,8 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                                    'In23': None,
                                    'In24': None},
                            output_names=['IF1', 'IF2', 'IF3', 'IF4'])
+  except Pyro.errors.NamingError:
+    module_logger.error("Is the MS287 IF switch server running?")
   equipment['IF_switch'] = {"DTO": IFswitch}
   sample_clk = {}
   sample_clk[0] = ClassInstance(Synthesizer,Valon1,timeout=10)
@@ -134,17 +150,14 @@ def station_configuration(equipment, roach_loglevel=logging.WARNING):
                  sample_clk[0].get_p("frequency"))
   module_logger.debug(" roach2 sample clock is %f",
                  sample_clk[1].get_p("frequency"))
+  equipment['Synthesizer'] 
   BE = ClassInstance(Backend,
-                     SAOspec,
+                     SAObackend,
                      "32K Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
-                               "Ro1In2": IFswitch.outputs['IF2'],
-                               "Ro2In1": IFswitch.outputs['IF3'],
-                               "Ro2In2": IFswitch.outputs['IF4']},
+                               "Ro2In1": IFswitch.outputs['IF3']},
                      output_names = [["IF1pwr"],
-                                     ["IF2pwr"],
-                                     ["IF3pwr"],
-                                     ["IF4pwr"]])
+                                     ["IF2pwr"]])
   equipment['Backend'] = BE                         
   return obs, equipment
 

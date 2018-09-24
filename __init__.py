@@ -11,43 +11,41 @@ References
 ==========
 http://deepspace.jpl.nasa.gov/dsndocs/810-005/302/302C.pdf
 
-Attachment to e-mail from Alina Bedrossian on 03/21/2017 at 09:16 AM gives 
-this assignment::
-  Antenna Type	Switch	CDSCC	  GDSCC	  MDSCC
-      BWG1	      1	    34_S1	  24_S1	  54_S1
-	                2	    34_X1	  26_S1	  54_X1
-	                3	    34_Ka1	15_X1	  54_Ka1
-      BWG2	      4	    35_X1	  25_X1	  55_X1
-	                5	    35_Ka1	25_Ka1	55_Ka1
-      BWG3	      6	    36_S1	  15_S1	  65_S1
-	                7	    36_X1	  26_X1	  65_X1
-	                8	    36_Ka1	26_Ka1	63_X2
-      70-m	      9	    43_S1	  14_S1	  63_S1
-	               10	    43_X1	  14_X1	  63_X1
-      AUX	       11	    AUX1	  AUX1	  AUX1
-	               12	    AUX2	  AUX2	  AUX2
-
+The following are from cable tracing and table from Larry (DVP-DTO.jpg)::
+   24SR  -> J1A  ->  2
+   14SR  -> J2A  ->  4
+         -> J3A  ->
+         -> J4A  ->  8
+         -> J5A  -> 10
+         -> J6A  ->  6
+   26XR  -> J7A  -> 18
+   26KaR -> J8A  -> 20
+         -> J9A  ->
+   14XR  -> J10A ->
+         -> J11A ->
+         -> J12A -> 24
 """
 import logging
 
 logger = logging.getLogger(__name__)
 
-cfg = {14: {'S' :{'R':9,     # S14RU
-                  'L':0},
-            'X' :{'R':10,    # X14RU
-                  'L':0}},
-       15: {'S' :{'R':6},    # S15RU
-            'X' :{'R':3}},   # X15RU
-       24: {'S' :{'R':1},    # S24RU
-            'X' :{'R':0,
-                  'L':0},
-            'Ka':{'R':0}},
-       25: {'X' :{'R':4},    # X25RU
-            'Ka':{'R':5}},   # Ka25RU
-       26: {'S' :{'R':2},    # S26RU
-            'X' :{'R':7,     # X26RU
-                  'L':0},
-            'Ka':{'R':8}}}   # Ka26RU
+#     0 means not connected
+cfg = {14: {'S' :{'R':14,     # J9A    14S1
+                  'L': 4},    # J2A    14S2
+            'X' :{'R': 6,     # J10A   14X
+                  'L': 0}},   #     
+       15: {'S' :{'R': 0},    #      
+            'X' :{'R': 0}},   # J3A NC 15X1
+       24: {'S' :{'R': 2},    # J1A    24S1
+            'X' :{'R': 0,     # J12A   24X1
+                  'L': 0},    #
+            'Ka':{'R': 0}},   #      
+       25: {'X' :{'R': 8},    # J4A    25X1
+            'Ka':{'R':10}},   # J5A    25K1
+       26: {'S' :{'R': 0},    # 
+            'X' :{'R':18,     # J7A    26X
+                  'L': 0},    #
+            'Ka':{'R':20}}}   # J8A    26K
 
 feeds = {}
 
@@ -75,4 +73,25 @@ wrap = {14: {'stow_az': 180,
         26: {'stow_az': 0,
              'wrap':    {'center': 135,'dir':'CW'}}}
 
+def make_switch_inputs(rx):
+  """
+  Identifies the signals going into the IF switch
+  """
+  inputs = {}
+  for index in range(1,25):
+    inputs["In%02d" % index] = None
+  for dss in cfg.keys():
+    logger.debug("make_switch_inputs: doing DSS %d", dss)
+    for band in cfg[dss].keys():
+      logger.debug("make_switch_inputs: doing band %s", band)
+      logger.debug("make_switch_inputs: details: %s", cfg[dss][band])
+      for pol in cfg[dss][band].keys():
+        swin = "In%02d" % cfg[dss][band][pol]
+        rxout = band+str(dss)+pol+"U"
+        inputs[swin] = rx[band+str(dss)].outputs[rxout]
+        logger.debug("DSS-%2d %s %s goes to %s from %s",
+                     dss, band, pol, swin, rxout)
+  inputs.pop("In00") # all the receivers not connected to switch inputs
+  print "make_switch_inputs: %s" % inputs
+  return inputs
 
