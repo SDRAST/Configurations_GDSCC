@@ -63,16 +63,16 @@ mech = {14:{'diam': 70,
             'type': 'BWG'},
         26:{'diam': 34,
             'type': 'BWG'}}
-
+# We need 34 meter info. 
 wrap = {14: {'stow_az': 180,
-             'wrap':    {'center':  45}},
+             'wrap':    {'center':  45,'dir':'CW'}},
         15: {'stow_az': 0,
-             'wrap':    {'center': 135}},
+             'wrap':    {'center': 135,'dir':'CW'}},
         24: {'stow_az': 0,
-             'wrap':    {'center': 135}},
+             'wrap':    {'center': 135,'dir':'CW'}},
         25: {'stow_az': 0,
-             'wrap':    {'center': 135}},
+             'wrap':    {'center': 135,'dir':'CW'}},
         26: {'stow_az': 0,
-             'wrap':    {'center': 135}}}
+             'wrap':    {'center': 135,'dir':'CW'}}}
 
 
