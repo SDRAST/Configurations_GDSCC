@@ -7,10 +7,11 @@ IPython.version_info.append('')
 
 import logging
 
+from Data_Reduction.DSN.WVSR.collector import WVSRmetadataCollector
 from MonitorControl import ClassInstance
 from MonitorControl.BackEnds import Backend
 from MonitorControl.BackEnds.DSN import WVSRbackend
-from MonitorControl.BackEnds.DSN.helpers import WVSRmetadataCollector
+#from MonitorControl.BackEnds.DSN.helpers import WVSRmetadataCollector
 from MonitorControl.Configurations.DSN_standard import standard_equipment
 from support.logs import init_logging, get_loglevel
 
