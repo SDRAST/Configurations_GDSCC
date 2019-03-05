@@ -1,9 +1,12 @@
 """
 For WVSR backend using standard DSN receivers
 """
-import IPython
-IPython.version_info = IPython.release.version.split('.')
-IPython.version_info.append('')
+try:
+  import IPython
+  IPython.version_info = IPython.release.version.split('.')
+  IPython.version_info.append('')
+except:
+  pass
 
 import logging
 
@@ -26,7 +29,8 @@ def station_configuration(equipment, project, dss, year, doy, time,
   @param equipment : empty dict initialized by main 'station_configuration'
   @type  equipment : dict
   
-  @param project : 
+  @param project :
+   
   """
   if collector:
     pass
