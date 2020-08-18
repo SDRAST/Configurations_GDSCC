@@ -92,6 +92,6 @@ def make_switch_inputs(rx):
         logger.debug("DSS-%2d %s %s goes to %s from %s",
                      dss, band, pol, swin, rxout)
   inputs.pop("In00") # all the receivers not connected to switch inputs
-  print(("make_switch_inputs: %s" % inputs))
+  print("make_switch_inputs: %s" % inputs)
   return inputs
 

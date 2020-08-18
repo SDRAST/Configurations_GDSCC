@@ -125,6 +125,7 @@ def station_configuration(equipment,
                                      ["IF4kurt", "IF4pwr"]])
     equipment['Backend'] = BE 
   else:
+    # if there is no backend, make up a dummy
     equipment['Backend'] = Device("Kurtosis Spectrometer",
                      inputs = {"Ro1In1": IFswitch.outputs['IF1'],
                                "Ro1In2": IFswitch.outputs['IF2'],
