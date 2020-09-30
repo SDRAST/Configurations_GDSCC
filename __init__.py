@@ -12,6 +12,7 @@ References
 http://deepspace.jpl.nasa.gov/dsndocs/810-005/302/302C.pdf
 
 The following are from cable tracing and table from Larry (DVP-DTO.jpg)::
+
    24SR  -> J1A  ->  2
    14SR  -> J2A  ->  4
          -> J3A  ->
@@ -24,6 +25,7 @@ The following are from cable tracing and table from Larry (DVP-DTO.jpg)::
    14XR  -> J10A ->
          -> J11A ->
          -> J12A -> 24
+    
 """
 import logging
 
