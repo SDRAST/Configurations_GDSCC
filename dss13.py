@@ -143,7 +143,7 @@ class DSN_K(FrontEnd):
                       output_names=output_names, active=active)
     self.logger = mylogger
     # It's not clear to me why I don't use DSN_fe.
-    for key in self.inputs.keys():
+    for key in list(self.inputs.keys()):
       self.logger.debug("__init__: %s signal source is %s",
                         self.inputs[key], self.inputs[key].source)
       self.inputs[key].signal = self.inputs[key].source.signal
@@ -153,7 +153,7 @@ class DSN_K(FrontEnd):
         self.inputs[key].signal = Beam('none')
       self.inputs[key].signal.data['band'] = 'K'
     link_ports(self.inputs,self.outputs)
-    for key in self.outputs.keys():
+    for key in list(self.outputs.keys()):
       self.outputs[key].signal = ComplexSignal(self.outputs[key].source.signal)
     self.logger.debug("__init__: outputs: %s", self.outputs)
 
@@ -231,9 +231,9 @@ class Kdc(Receiver):
     Receiver.__init__(self, name, inputs=inputs,
                       output_names=output_names, active=active)
     self.logger = mylogger
-    inkeys = self.inputs.keys()
+    inkeys = list(self.inputs.keys())
     inkeys.sort()
-    outkeys = self.outputs.keys()
+    outkeys = list(self.outputs.keys())
     outkeys.sort()
     self.chan = {}
     for key in inkeys:
@@ -243,7 +243,7 @@ class Kdc(Receiver):
       self.chan[key] = Receiver.RFsection(self, key, inputs=ch_inputs,
                                                         output_names=[outname])
       link_ports(ch_inputs, self.chan[key].outputs)
-      for chkey in self.chan[key].outputs.keys():
+      for chkey in list(self.chan[key].outputs.keys()):
         self.outputs[chkey] = self.chan[key].outputs[chkey]
     self.logger.debug("__init__: outputs: %s", self.outputs)
 
@@ -287,9 +287,9 @@ class XXKa(Receiver):
     
     if inputs == []:
       raise 
-      inkeys = self.inputs.keys()
+      inkeys = list(self.inputs.keys())
       inkeys.sort()
-      outkeys = self.outputs.keys()
+      outkeys = list(self.outputs.keys())
       outkeys.sort()
       self.chan = {}
       for key in inkeys:
@@ -301,7 +301,7 @@ class XXKa(Receiver):
         self.chan[key] = Receiver.RFsection(self, key, inputs=ch_inputs,
                                                         output_names=[outname])
       link_ports(ch_inputs, self.chan[key].outputs)
-      for chkey in self.chan[key].outputs.keys():
+      for chkey in list(self.chan[key].outputs.keys()):
         self.outputs[chkey] = self.chan[key].outputs[chkey]
     self.logger.debug("__init__: outputs: %s", self.outputs)
         
@@ -347,7 +347,7 @@ class HP_IFSwitch(Device):
                     active=active)
     self.logger = mylogger
     self.logger.debug("__init__: superclass Device initialized")
-    input_names = inputs.keys()
+    input_names = list(inputs.keys())
     input_names.sort()
     self.channel = {}
     self.states = {}
@@ -374,7 +374,7 @@ class HP_IFSwitch(Device):
       Switch.__init__(self, name, inputs=inputs, output_names=output_names,
                       stype = self.stype)
       self.logger = mylogger
-      for port in self.outputs.keys():
+      for port in list(self.outputs.keys()):
         self.parent.outputs[port] = self.outputs[port]
       self.get_state()
 
@@ -390,7 +390,7 @@ class IFMatrixSwitch(Device):
                     active=active)
     self.logger = mylogger
     self.channel = {}
-    for key in self.inputs.keys():
+    for key in list(self.inputs.keys()):
       self.channel[key] = self.Channel(self, key,
                                        inputs={key: self.inputs[key]},
                                        output_names=output_names)
@@ -407,7 +407,7 @@ class IFMatrixSwitch(Device):
       self.stype = "1xN"
       Switch.__init__(self, name, inputs=inputs, output_names=output_names,
                       stype = self.stype)
-      for port in self.outputs.keys():
+      for port in list(self.outputs.keys()):
         self.parent.outputs[port] = self.outputs[port]
 
 # =================================== Back Ends ===============================
@@ -455,14 +455,14 @@ def get_FE_band_and_pols(inputs, band=None, pols_out=None, output_names=[]):
   @return: (band, output names, output polarization)
   """
   # Make sure that the band is specified
-  input_keys = inputs.keys()
+  input_keys = list(inputs.keys())
   input_keys.sort()
   module_logger.debug("get_FE_band_and_pols: inputs: %s", input_keys)
   if band == None:
     bands = valid_property(input_keys, 'band')
     if bands == False:
       raise ObservatoryError('band',' property key not found')
-    band = bands[bands.keys()[0]]
+    band = bands[list(bands.keys())[0]]
     module_logger.debug('get_FE_band_and_pols: band is %s', band)
     if len(inputs) > 1:
       # check that all bands are the same
@@ -474,7 +474,7 @@ def get_FE_band_and_pols(inputs, band=None, pols_out=None, output_names=[]):
   if pols_out == None and output_names == None:
     raise ObservatoryError("No outputs specified")
   elif pols_out:
-    output_names = pols_out.keys()
+    output_names = list(pols_out.keys())
     output_names.sort()
   else:
      pols_out = valid_property(output_names, 'pol_type')
@@ -506,7 +506,7 @@ def connect_FE_inputs_and_outputs(inputs, band, outputs, pols_out):
   @return: modified outputs
   """
   # connect the inputs and outputs
-  output_names = outputs.keys()
+  output_names = list(outputs.keys())
   output_names.sort()
   if len(inputs) == 1:
     link_ports(inputs, outputs)
@@ -518,7 +518,7 @@ def connect_FE_inputs_and_outputs(inputs, band, outputs, pols_out):
       index = output_names.index(item)
       link_ports(inputs[input_keys[index]], item)
   # Specify the output signals
-  for key in outputs.keys():
+  for key in list(outputs.keys()):
     if outputs[key].signal == None:
       outputs[key].signal = ComplexSignal(None, name=key, pol=pols_out[key])
     else:
@@ -566,7 +566,7 @@ def connect_receiver_inputs_and_outputs(inputs, outputs, IF_out):
   
   @return: modified outputs
   """
-  output_names = outputs.keys()
+  output_names = list(outputs.keys())
   output_names.sort()
   # connect the inputs and outputs
   if len(inputs) == 1:
@@ -574,7 +574,7 @@ def connect_receiver_inputs_and_outputs(inputs, outputs, IF_out):
   else:
     assert len(inputs) == len(outputs), \
                       "number of output groups must equal the number of inputs"
-    input_keys = inputs.keys()
+    input_keys = list(inputs.keys())
     input_keys.sort()
     module_logger.debug(" input keys: %s", input_keys)
     for item in IF_out:
@@ -584,7 +584,7 @@ def connect_receiver_inputs_and_outputs(inputs, outputs, IF_out):
       link_ports({input_keys[index]: inputs[input_keys[index]]},
                  {item: outputs[item]})
   # Specify the output signals
-  for key in outputs.keys():
+  for key in list(outputs.keys()):
     if outputs[key].signal == None:
       outputs[key].signal = IF(None, IF_type=IF_out[key])
     else:
